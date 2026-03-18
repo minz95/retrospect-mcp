@@ -11,7 +11,9 @@ import { mkdirSync, writeFileSync, existsSync } from 'fs';
 import { resolve, join } from 'path';
 import Mustache from 'mustache';
 import { readFileSync } from 'fs';
-import { createProject } from '../storage/db.js';
+import { createProject, updateProject } from '../storage/db.js';
+import { NotionClient } from '../integrations/notion/client.js';
+import { buildProjectDatabaseProperties } from '../integrations/notion/page-builder.js';
 import type { Config } from '../types/index.js';
 
 export interface CreateProjectParams {
@@ -61,8 +63,31 @@ export async function createProjectTool(
     obsidianPath,
   });
 
-  // TODO: Create Notion database in Issue #24
-  const notionPageId = undefined;
+  // Create Notion database
+  let notionPageId: string | undefined;
+  let notionUrl: string | undefined;
+  try {
+    const notionClient = new NotionClient({
+      token: config.notion.token,
+      parentPageId: config.notion.parentPageId,
+    });
+
+    // Create database for daily logs
+    const notionResult = await notionClient.createDatabase({
+      title: projectName,
+      properties: buildProjectDatabaseProperties(),
+    });
+
+    notionPageId = notionResult.databaseId;
+    notionUrl = notionResult.url;
+    console.error(`  - Created Notion database: ${notionUrl}`);
+
+    // Update project with Notion database ID
+    updateProject(projectId, { notionPageId });
+  } catch (error) {
+    console.error('  - Warning: Failed to create Notion database:', error);
+    // Continue without Notion database (don't fail the entire operation)
+  }
 
   // TODO: Implement conversation mode in Issue #25
   if (conversationMode) {
@@ -73,7 +98,7 @@ export async function createProjectTool(
     projectId,
     obsidianPath,
     notionPageId,
-    message: `Project "${projectName}" created successfully!\n- ID: ${projectId}\n- Obsidian: ${obsidianPath}`,
+    message: `Project "${projectName}" created successfully!\n- ID: ${projectId}\n- Obsidian: ${obsidianPath}${notionPageId ? `\n- Notion: ${notionUrl}` : ''}`,
   };
 }
 

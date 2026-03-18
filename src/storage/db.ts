@@ -186,6 +186,35 @@ export function getProject(id: string): Project | null {
   };
 }
 
+export function updateProject(id: string, updates: Partial<Project>): void {
+  const database = getDatabase();
+  const fields: string[] = [];
+  const values: any[] = [];
+
+  if (updates.notionPageId !== undefined) {
+    fields.push('notion_page_id = ?');
+    values.push(updates.notionPageId);
+  }
+
+  if (updates.description !== undefined) {
+    fields.push('description = ?');
+    values.push(updates.description);
+  }
+
+  if (updates.name !== undefined) {
+    fields.push('name = ?');
+    values.push(updates.name);
+  }
+
+  if (fields.length === 0) {
+    return; // No updates
+  }
+
+  values.push(id);
+  const stmt = database.prepare(`UPDATE projects SET ${fields.join(', ')} WHERE id = ?`);
+  stmt.run(...values);
+}
+
 export function getAllProjects(): Project[] {
   const database = getDatabase();
   const stmt = database.prepare('SELECT * FROM projects ORDER BY created_at DESC');
