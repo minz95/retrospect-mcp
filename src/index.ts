@@ -22,6 +22,7 @@ import { initializeDatabase } from './storage/db.js';
 import { createProjectTool, type CreateProjectParams } from './tools/create-project.js';
 import { logDailyWorkTool, type LogDailyWorkParams } from './tools/log-daily-work.js';
 import { analyzeCommitsTool, type AnalyzeCommitsParams } from './tools/analyze-commits.js';
+import { extractInsightsTool, type ExtractInsightsParams } from './tools/extract-insights.js';
 import type { Config } from './types/index.js';
 
 /**
@@ -148,8 +149,34 @@ async function main() {
             required: ['repoPath', 'startDate', 'endDate'],
           },
         },
+        {
+          name: 'extract_insights',
+          description: 'Extract actionable insights from daily logs using Claude AI',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              startDate: {
+                type: 'string',
+                description: 'Start date (YYYY-MM-DD)',
+              },
+              endDate: {
+                type: 'string',
+                description: 'End date (YYYY-MM-DD)',
+              },
+              projectId: {
+                type: 'string',
+                description: 'Optional: filter by project ID',
+              },
+              forceRefresh: {
+                type: 'boolean',
+                description: 'Force re-extraction even if cached (default false)',
+                default: false,
+              },
+            },
+            required: ['startDate', 'endDate'],
+          },
+        },
         // TODO: Add more tools in subsequent issues
-        // - extract_insights (Issue #11)
         // - generate_sns_post (Issue #15)
         // - approve_and_publish (Issue #20)
         // - extract_action_items (Issue #26)
@@ -193,6 +220,20 @@ async function main() {
       if (name === 'analyze_git_commits') {
         const params = (args || {}) as unknown as AnalyzeCommitsParams;
         const result = await analyzeCommitsTool(params);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result.message,
+            },
+          ],
+        };
+      }
+
+      if (name === 'extract_insights') {
+        const params = (args || {}) as unknown as ExtractInsightsParams;
+        const result = await extractInsightsTool(params, config);
 
         return {
           content: [
