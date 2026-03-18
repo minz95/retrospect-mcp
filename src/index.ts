@@ -23,6 +23,7 @@ import { createProjectTool, type CreateProjectParams } from './tools/create-proj
 import { logDailyWorkTool, type LogDailyWorkParams } from './tools/log-daily-work.js';
 import { analyzeCommitsTool, type AnalyzeCommitsParams } from './tools/analyze-commits.js';
 import { extractInsightsTool, type ExtractInsightsParams } from './tools/extract-insights.js';
+import { generateSNSTool, type GenerateSNSParams } from './tools/generate-sns.js';
 import { listInsightsResources, readInsightsResource } from './resources/insights.js';
 import type { Config } from './types/index.js';
 
@@ -177,8 +178,31 @@ async function main() {
             required: ['startDate', 'endDate'],
           },
         },
+        {
+          name: 'generate_sns_post',
+          description: 'Generate SNS content from insights for specified platforms',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              insightId: {
+                type: 'string',
+                description: 'Insight ID to generate content from',
+              },
+              platform: {
+                type: 'string',
+                enum: ['thread', 'linkedin', 'medium'],
+                description: 'Target SNS platform',
+              },
+              includeHashtags: {
+                type: 'boolean',
+                description: 'Include auto-generated hashtags (default true)',
+                default: true,
+              },
+            },
+            required: ['insightId', 'platform'],
+          },
+        },
         // TODO: Add more tools in subsequent issues
-        // - generate_sns_post (Issue #15)
         // - approve_and_publish (Issue #20)
         // - extract_action_items (Issue #26)
       ],
@@ -235,6 +259,20 @@ async function main() {
       if (name === 'extract_insights') {
         const params = (args || {}) as unknown as ExtractInsightsParams;
         const result = await extractInsightsTool(params, config);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result.message,
+            },
+          ],
+        };
+      }
+
+      if (name === 'generate_sns_post') {
+        const params = (args || {}) as unknown as GenerateSNSParams;
+        const result = await generateSNSTool(params, config);
 
         return {
           content: [
