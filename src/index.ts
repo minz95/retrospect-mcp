@@ -21,6 +21,7 @@ import { loadConfig } from './utils/config.js';
 import { initializeDatabase } from './storage/db.js';
 import { createProjectTool, type CreateProjectParams } from './tools/create-project.js';
 import { logDailyWorkTool, type LogDailyWorkParams } from './tools/log-daily-work.js';
+import { analyzeCommitsTool, type AnalyzeCommitsParams } from './tools/analyze-commits.js';
 import type { Config } from './types/index.js';
 
 /**
@@ -120,8 +121,34 @@ async function main() {
             required: ['projectId'],
           },
         },
+        {
+          name: 'analyze_git_commits',
+          description: 'Analyze git commits for a specific date range',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              repoPath: {
+                type: 'string',
+                description: 'Path to git repository',
+              },
+              startDate: {
+                type: 'string',
+                description: 'Start date (YYYY-MM-DD)',
+              },
+              endDate: {
+                type: 'string',
+                description: 'End date (YYYY-MM-DD)',
+              },
+              includeChanges: {
+                type: 'boolean',
+                description: 'Include diff analysis (default false)',
+                default: false,
+              },
+            },
+            required: ['repoPath', 'startDate', 'endDate'],
+          },
+        },
         // TODO: Add more tools in subsequent issues
-        // - analyze_git_commits (Issue #8)
         // - extract_insights (Issue #11)
         // - generate_sns_post (Issue #15)
         // - approve_and_publish (Issue #20)
@@ -152,6 +179,20 @@ async function main() {
       if (name === 'log_daily_work') {
         const params = (args || {}) as unknown as LogDailyWorkParams;
         const result = await logDailyWorkTool(params, config);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result.message,
+            },
+          ],
+        };
+      }
+
+      if (name === 'analyze_git_commits') {
+        const params = (args || {}) as unknown as AnalyzeCommitsParams;
+        const result = await analyzeCommitsTool(params);
 
         return {
           content: [
