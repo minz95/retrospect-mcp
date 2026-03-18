@@ -27,6 +27,8 @@ import { generateSNSTool, type GenerateSNSParams } from './tools/generate-sns.js
 import { approveAndPublishTool, type ApproveAndPublishParams } from './tools/approve-publish.js';
 import { listInsightsResources, readInsightsResource } from './resources/insights.js';
 import { listPendingPostsResources, readPendingPostsResource } from './resources/pending-posts.js';
+import { getDailyStandupPrompt } from './prompts/daily-standup.js';
+import { getProjectIdeationPrompt } from './prompts/project-ideation.js';
 import type { Config } from './types/index.js';
 
 /**
@@ -400,21 +402,70 @@ async function main() {
   server.setRequestHandler(ListPromptsRequestSchema, async () => {
     return {
       prompts: [
-        // TODO: Add prompts in subsequent issues
-        // - daily-standup (Issue #25)
-        // - project-ideation (Issue #25)
-        // - insight-extraction (Issue #10)
-        // - sns-formatters (Issue #13)
+        {
+          name: 'daily-standup',
+          description: 'Generate daily standup summary from recent logs',
+          arguments: [
+            {
+              name: 'date',
+              description: 'End date for standup (YYYY-MM-DD, defaults to today)',
+              required: false,
+            },
+            {
+              name: 'projectId',
+              description: 'Filter by specific project ID',
+              required: false,
+            },
+            {
+              name: 'daysBack',
+              description: 'Number of days to look back (default: 1)',
+              required: false,
+            },
+          ],
+        },
+        {
+          name: 'project-ideation',
+          description: 'Interactive brainstorming session for new projects',
+          arguments: [
+            {
+              name: 'topic',
+              description: 'Project topic or area (e.g., "web app", "CLI tool")',
+              required: false,
+            },
+            {
+              name: 'constraints',
+              description: 'List of constraints or requirements',
+              required: false,
+            },
+            {
+              name: 'goals',
+              description: 'List of project goals',
+              required: false,
+            },
+          ],
+        },
       ],
     };
   });
 
   // Register prompt get handler
   server.setRequestHandler(GetPromptRequestSchema, async (request) => {
-    const { name } = request.params;
+    const { name, arguments: args } = request.params;
 
-    // TODO: Implement prompt handlers in subsequent issues
-    throw new Error(`Unknown prompt: ${name}`);
+    try {
+      if (name === 'daily-standup') {
+        return await getDailyStandupPrompt(args as any);
+      }
+
+      if (name === 'project-ideation') {
+        return await getProjectIdeationPrompt(args as any);
+      }
+
+      throw new Error(`Unknown prompt: ${name}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to get prompt: ${errorMessage}`);
+    }
   });
 
   // Start server with stdio transport
