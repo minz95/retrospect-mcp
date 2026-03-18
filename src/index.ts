@@ -18,6 +18,7 @@ import {
   GetPromptRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import { loadConfig } from './utils/config.js';
+import { initializeDatabase } from './storage/db.js';
 import type { Config } from './types/index.js';
 
 /**
@@ -33,6 +34,14 @@ async function main() {
     console.error(`  - Database: ${config.database.path}`);
   } catch (error) {
     console.error('✗ Failed to load configuration:', error);
+    process.exit(1);
+  }
+
+  // Initialize database
+  try {
+    initializeDatabase(config.database.path);
+  } catch (error) {
+    console.error('✗ Failed to initialize database:', error);
     process.exit(1);
   }
 
