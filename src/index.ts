@@ -19,6 +19,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { loadConfig } from './utils/config.js';
 import { initializeDatabase } from './storage/db.js';
+import { createProjectTool, type CreateProjectParams } from './tools/create-project.js';
 import type { Config } from './types/index.js';
 
 /**
@@ -64,8 +65,30 @@ async function main() {
   server.setRequestHandler(ListToolsRequestSchema, async () => {
     return {
       tools: [
-        // TODO: Add tools in subsequent issues
-        // - create_project (Issue #4)
+        {
+          name: 'create_project',
+          description: 'Create a new project with Obsidian directory and database entry',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectName: {
+                type: 'string',
+                description: 'Name of the project',
+              },
+              description: {
+                type: 'string',
+                description: 'Project description (optional)',
+              },
+              conversationMode: {
+                type: 'boolean',
+                description: 'Enable conversational ideation (optional, will be implemented in Issue #25)',
+                default: false,
+              },
+            },
+            required: ['projectName'],
+          },
+        },
+        // TODO: Add more tools in subsequent issues
         // - analyze_git_commits (Issue #8)
         // - log_daily_work (Issue #7)
         // - extract_insights (Issue #11)
@@ -78,10 +101,37 @@ async function main() {
 
   // Register tool call handler
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const { name } = request.params;
+    const { name, arguments: args } = request.params;
 
-    // TODO: Implement tool handlers in subsequent issues
-    throw new Error(`Unknown tool: ${name}`);
+    try {
+      if (name === 'create_project') {
+        const params = (args || {}) as unknown as CreateProjectParams;
+        const result = await createProjectTool(params, config);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result.message,
+            },
+          ],
+        };
+      }
+
+      // TODO: Implement more tool handlers in subsequent issues
+      throw new Error(`Unknown tool: ${name}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error: ${errorMessage}`,
+          },
+        ],
+        isError: true,
+      };
+    }
   });
 
   // Register resource list handler
