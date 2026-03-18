@@ -20,6 +20,7 @@ import {
 import { loadConfig } from './utils/config.js';
 import { initializeDatabase } from './storage/db.js';
 import { createProjectTool, type CreateProjectParams } from './tools/create-project.js';
+import { logDailyWorkTool, type LogDailyWorkParams } from './tools/log-daily-work.js';
 import type { Config } from './types/index.js';
 
 /**
@@ -88,9 +89,39 @@ async function main() {
             required: ['projectName'],
           },
         },
+        {
+          name: 'log_daily_work',
+          description: 'Log daily development work by analyzing git commits and manual input',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              date: {
+                type: 'string',
+                description: 'ISO date (YYYY-MM-DD), defaults to today',
+              },
+              projectId: {
+                type: 'string',
+                description: 'Project ID from database',
+              },
+              gitRepoPath: {
+                type: 'string',
+                description: 'Path to git repository (optional, uses default from config)',
+              },
+              manualInput: {
+                type: 'string',
+                description: 'Additional notes and manual input',
+              },
+              includeCommits: {
+                type: 'boolean',
+                description: 'Include git commits analysis (default true)',
+                default: true,
+              },
+            },
+            required: ['projectId'],
+          },
+        },
         // TODO: Add more tools in subsequent issues
         // - analyze_git_commits (Issue #8)
-        // - log_daily_work (Issue #7)
         // - extract_insights (Issue #11)
         // - generate_sns_post (Issue #15)
         // - approve_and_publish (Issue #20)
@@ -107,6 +138,20 @@ async function main() {
       if (name === 'create_project') {
         const params = (args || {}) as unknown as CreateProjectParams;
         const result = await createProjectTool(params, config);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result.message,
+            },
+          ],
+        };
+      }
+
+      if (name === 'log_daily_work') {
+        const params = (args || {}) as unknown as LogDailyWorkParams;
+        const result = await logDailyWorkTool(params, config);
 
         return {
           content: [
