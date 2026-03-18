@@ -27,6 +27,8 @@ import { generateSNSTool, type GenerateSNSParams } from './tools/generate-sns.js
 import { approveAndPublishTool, type ApproveAndPublishParams } from './tools/approve-publish.js';
 import { listInsightsResources, readInsightsResource } from './resources/insights.js';
 import { listPendingPostsResources, readPendingPostsResource } from './resources/pending-posts.js';
+import { listDailyLogsResources, readDailyLogsResource } from './resources/daily-logs.js';
+import { listProjectsResources, readProjectsResource } from './resources/projects.js';
 import { getDailyStandupPrompt } from './prompts/daily-standup.js';
 import { getProjectIdeationPrompt } from './prompts/project-ideation.js';
 import type { Config } from './types/index.js';
@@ -350,9 +352,11 @@ async function main() {
     // Add pending posts resources
     resources.push(...listPendingPostsResources());
 
-    // TODO: Add more resources in subsequent issues
-    // - daily-logs:// (Issue #27)
-    // - projects:// (Issue #27)
+    // Add daily logs resources
+    resources.push(...listDailyLogsResources());
+
+    // Add projects resources
+    resources.push(...listProjectsResources());
 
     return { resources };
   });
@@ -390,7 +394,34 @@ async function main() {
         };
       }
 
-      // TODO: Implement more resource handlers in subsequent issues
+      // Handle daily logs resources
+      if (uri.startsWith('daily-logs://')) {
+        const content = readDailyLogsResource(uri);
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: content,
+            },
+          ],
+        };
+      }
+
+      // Handle projects resources
+      if (uri.startsWith('projects://')) {
+        const content = readProjectsResource(uri);
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: content,
+            },
+          ],
+        };
+      }
+
       throw new Error(`Unknown resource: ${uri}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
