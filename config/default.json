@@ -1,0 +1,35 @@
+{
+  "obsidian": {
+    "vaultPath": "${OBSIDIAN_VAULT_PATH}"
+  },
+  "notion": {
+    "token": "${NOTION_TOKEN}",
+    "parentPageId": "${NOTION_PARENT_PAGE_ID}"
+  },
+  "claude": {
+    "apiKey": "${CLAUDE_API_KEY}",
+    "model": "claude-sonnet-4-5-20250929"
+  },
+  "sns": {
+    "thread": {
+      "bearerToken": "${TWITTER_BEARER_TOKEN}",
+      "apiKey": "${TWITTER_API_KEY}",
+      "apiSecret": "${TWITTER_API_SECRET}",
+      "accessToken": "${TWITTER_ACCESS_TOKEN}",
+      "accessSecret": "${TWITTER_ACCESS_SECRET}"
+    },
+    "linkedin": {
+      "accessToken": "${LINKEDIN_ACCESS_TOKEN}",
+      "userId": "${LINKEDIN_USER_ID}"
+    },
+    "medium": {
+      "token": "${MEDIUM_TOKEN}"
+    }
+  },
+  "git": {
+    "defaultRepoPath": "${DEFAULT_GIT_REPO_PATH}"
+  },
+  "database": {
+    "path": "${DATABASE_PATH}"
+  }
+}
