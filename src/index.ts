@@ -23,6 +23,7 @@ import { createProjectTool, type CreateProjectParams } from './tools/create-proj
 import { logDailyWorkTool, type LogDailyWorkParams } from './tools/log-daily-work.js';
 import { analyzeCommitsTool, type AnalyzeCommitsParams } from './tools/analyze-commits.js';
 import { extractInsightsTool, type ExtractInsightsParams } from './tools/extract-insights.js';
+import { listInsightsResources, readInsightsResource } from './resources/insights.js';
 import type { Config } from './types/index.js';
 
 /**
@@ -263,23 +264,44 @@ async function main() {
 
   // Register resource list handler
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return {
-      resources: [
-        // TODO: Add resources in subsequent issues
-        // - daily-logs:// (Issue #27)
-        // - projects:// (Issue #27)
-        // - insights:// (Issue #12)
-        // - pending-posts:// (Issue #16)
-      ],
-    };
+    const resources = [];
+
+    // Add insights resources
+    resources.push(...listInsightsResources());
+
+    // TODO: Add more resources in subsequent issues
+    // - daily-logs:// (Issue #27)
+    // - projects:// (Issue #27)
+    // - pending-posts:// (Issue #16)
+
+    return { resources };
   });
 
   // Register resource read handler
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
     const { uri } = request.params;
 
-    // TODO: Implement resource handlers in subsequent issues
-    throw new Error(`Unknown resource: ${uri}`);
+    try {
+      // Handle insights resources
+      if (uri.startsWith('insights://')) {
+        const content = readInsightsResource(uri);
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: content,
+            },
+          ],
+        };
+      }
+
+      // TODO: Implement more resource handlers in subsequent issues
+      throw new Error(`Unknown resource: ${uri}`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to read resource: ${errorMessage}`);
+    }
   });
 
   // Register prompt list handler
