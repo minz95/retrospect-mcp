@@ -243,6 +243,35 @@ export function getDailyLog(id: string): Partial<DailyLog> | null {
   };
 }
 
+export function updateDailyLog(id: string, updates: Partial<DailyLog>): void {
+  const database = getDatabase();
+  const fields: string[] = [];
+  const values: any[] = [];
+
+  if (updates.notionPageId !== undefined) {
+    fields.push('notion_page_id = ?');
+    values.push(updates.notionPageId);
+  }
+
+  if (updates.summary !== undefined) {
+    fields.push('summary = ?');
+    values.push(updates.summary);
+  }
+
+  if (updates.manualNotes !== undefined) {
+    fields.push('manual_notes = ?');
+    values.push(updates.manualNotes);
+  }
+
+  if (fields.length === 0) {
+    return; // No updates
+  }
+
+  values.push(id);
+  const stmt = database.prepare(`UPDATE daily_logs SET ${fields.join(', ')} WHERE id = ?`);
+  stmt.run(...values);
+}
+
 export function getDailyLogsByDateRange(startDate: string, endDate: string): Partial<DailyLog>[] {
   const database = getDatabase();
   const stmt = database.prepare('SELECT * FROM daily_logs WHERE date >= ? AND date <= ? ORDER BY date DESC');
