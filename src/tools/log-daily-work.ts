@@ -11,7 +11,9 @@
 
 import { analyzeGitCommits } from '../core/git-analyzer.js';
 import { ObsidianFileManager } from '../integrations/obsidian/file-manager.js';
-import { createDailyLog, getProject, createActionItem } from '../storage/db.js';
+import { NotionClient } from '../integrations/notion/client.js';
+import { buildDailyLogPage } from '../integrations/notion/page-builder.js';
+import { createDailyLog, getProject, createActionItem, updateDailyLog } from '../storage/db.js';
 import type { Config } from '../types/index.js';
 import type { GitCommit } from '../types/index.js';
 
@@ -123,8 +125,44 @@ export async function logDailyWorkTool(
     });
   }
 
-  // TODO: Create Notion page in Issue #23
-  const notionPageId = undefined;
+  // Create Notion page (dual write)
+  let notionPageId: string | undefined;
+  try {
+    if (project.notionPageId) {
+      const notionClient = new NotionClient({
+        token: config.notion.token,
+        parentPageId: config.notion.parentPageId,
+      });
+
+      // Build Notion page data
+      const pageData = buildDailyLogPage({
+        date,
+        projectName: project.name,
+        summary,
+        commits,
+        manualNotes: manualInput,
+        actionItems,
+      });
+
+      // Create page in project's Notion database
+      const notionResult = await notionClient.createPage({
+        databaseId: project.notionPageId,
+        properties: pageData.properties,
+        content: pageData.content,
+      });
+
+      notionPageId = notionResult.pageId;
+      console.error(`  - Notion page created: ${notionResult.url}`);
+
+      // Update database with Notion page ID
+      updateDailyLog(logId, { notionPageId });
+    } else {
+      console.error('  - Skipping Notion (project has no Notion database)');
+    }
+  } catch (error) {
+    console.error('  - Warning: Failed to create Notion page:', error);
+    // Continue without Notion page (don't fail the entire operation)
+  }
 
   return {
     logId,
@@ -132,7 +170,7 @@ export async function logDailyWorkTool(
     notionPageId,
     commitCount: commits.length,
     actionItems,
-    message: `Daily log created for ${date}!\n- Log ID: ${logId}\n- Commits: ${commits.length}\n- Action items: ${actionItems.length}\n- Obsidian: ${obsidianPath}`,
+    message: `Daily log created for ${date}!\n- Log ID: ${logId}\n- Commits: ${commits.length}\n- Action items: ${actionItems.length}\n- Obsidian: ${obsidianPath}${notionPageId ? `\n- Notion: Created (${notionPageId})` : ''}`,
   };
 }
 
