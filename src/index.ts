@@ -25,6 +25,7 @@ import { analyzeCommitsTool, type AnalyzeCommitsParams } from './tools/analyze-c
 import { extractInsightsTool, type ExtractInsightsParams } from './tools/extract-insights.js';
 import { generateSNSTool, type GenerateSNSParams } from './tools/generate-sns.js';
 import { listInsightsResources, readInsightsResource } from './resources/insights.js';
+import { listPendingPostsResources, readPendingPostsResource } from './resources/pending-posts.js';
 import type { Config } from './types/index.js';
 
 /**
@@ -307,10 +308,12 @@ async function main() {
     // Add insights resources
     resources.push(...listInsightsResources());
 
+    // Add pending posts resources
+    resources.push(...listPendingPostsResources());
+
     // TODO: Add more resources in subsequent issues
     // - daily-logs:// (Issue #27)
     // - projects:// (Issue #27)
-    // - pending-posts:// (Issue #16)
 
     return { resources };
   });
@@ -323,6 +326,20 @@ async function main() {
       // Handle insights resources
       if (uri.startsWith('insights://')) {
         const content = readInsightsResource(uri);
+        return {
+          contents: [
+            {
+              uri,
+              mimeType: 'application/json',
+              text: content,
+            },
+          ],
+        };
+      }
+
+      // Handle pending posts resources
+      if (uri.startsWith('pending-posts://')) {
+        const content = readPendingPostsResource(uri);
         return {
           contents: [
             {
