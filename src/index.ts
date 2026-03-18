@@ -24,6 +24,7 @@ import { logDailyWorkTool, type LogDailyWorkParams } from './tools/log-daily-wor
 import { analyzeCommitsTool, type AnalyzeCommitsParams } from './tools/analyze-commits.js';
 import { extractInsightsTool, type ExtractInsightsParams } from './tools/extract-insights.js';
 import { generateSNSTool, type GenerateSNSParams } from './tools/generate-sns.js';
+import { approveAndPublishTool, type ApproveAndPublishParams } from './tools/approve-publish.js';
 import { listInsightsResources, readInsightsResource } from './resources/insights.js';
 import { listPendingPostsResources, readPendingPostsResource } from './resources/pending-posts.js';
 import type { Config } from './types/index.js';
@@ -203,8 +204,30 @@ async function main() {
             required: ['insightId', 'platform'],
           },
         },
+        {
+          name: 'approve_and_publish',
+          description: 'Approve, revise, or reject pending SNS posts',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              postId: {
+                type: 'string',
+                description: 'Pending post ID',
+              },
+              action: {
+                type: 'string',
+                enum: ['approve', 'revise', 'reject'],
+                description: 'Action to take: approve (publish), revise (regenerate), or reject',
+              },
+              revisionPrompt: {
+                type: 'string',
+                description: 'Revision instructions (required for revise action)',
+              },
+            },
+            required: ['postId', 'action'],
+          },
+        },
         // TODO: Add more tools in subsequent issues
-        // - approve_and_publish (Issue #20)
         // - extract_action_items (Issue #26)
       ],
     };
@@ -274,6 +297,20 @@ async function main() {
       if (name === 'generate_sns_post') {
         const params = (args || {}) as unknown as GenerateSNSParams;
         const result = await generateSNSTool(params, config);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result.message,
+            },
+          ],
+        };
+      }
+
+      if (name === 'approve_and_publish') {
+        const params = (args || {}) as unknown as ApproveAndPublishParams;
+        const result = await approveAndPublishTool(params, config);
 
         return {
           content: [
