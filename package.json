@@ -1,9 +1,18 @@
 {
-  "name": "retrospect-mcp",
+  "name": "@minz95/retrospect-mcp",
   "version": "1.0.0",
   "description": "MCP server for daily dev logs, insights extraction, and SNS publishing",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "retrospect-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "config",
+    "README.md"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
@@ -23,6 +32,14 @@
   ],
   "author": "minz95",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/minz95/retrospect-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/minz95/retrospect-mcp/issues"
+  },
+  "homepage": "https://github.com/minz95/retrospect-mcp#readme",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.20.0",
     "@modelcontextprotocol/sdk": "^1.0.4",
