@@ -81,7 +81,7 @@ function readAllPendingPosts(): string {
         status: post.status,
         version: post.version,
         createdAt: post.createdAt,
-        contentPreview: getContentPreview(post.content, post.platform),
+        contentPreview: getContentPreview(post.content),
         metadata: post.metadata,
       })),
       total: posts.length,
@@ -117,7 +117,6 @@ function readPostById(id: string): string {
       version: post.version,
       parentId: post.parentId,
       createdAt: post.createdAt,
-      approvedAt: post.approvedAt,
       publishedAt: post.publishedAt,
       publishedUrl: post.publishedUrl,
       metadata: post.metadata,
@@ -131,8 +130,7 @@ function readPostById(id: string): string {
  * Get content preview
  */
 function getContentPreview(
-  content: string | string[],
-  platform: 'thread' | 'linkedin' | 'medium'
+  content: string | string[]
 ): string {
   if (Array.isArray(content)) {
     // Thread: show first tweet

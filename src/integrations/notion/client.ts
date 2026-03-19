@@ -90,7 +90,9 @@ export class NotionClient {
       });
 
       const databaseId = response.id;
-      const url = response.url;
+      const url = 'url' in response && typeof response.url === 'string'
+        ? response.url
+        : `https://www.notion.so/${databaseId.replace(/-/g, '')}`;
 
       console.error(`  - Notion database created: ${url}`);
 

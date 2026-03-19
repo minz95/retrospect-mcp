@@ -79,7 +79,10 @@ export async function publishMediumPost(
       );
     }
 
-    const result = await response.json();
+    const result = await response.json() as {
+      data: { id: string; url: string };
+      errors?: Array<{ message: string }>;
+    };
 
     if (result.errors && result.errors.length > 0) {
       throw new Error(`Medium API errors: ${JSON.stringify(result.errors)}`);
@@ -121,7 +124,7 @@ async function getMediumUserId(config: MediumConfig): Promise<string> {
       throw new Error(`Failed to get user: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as { data?: { id?: string } };
 
     if (!result.data || !result.data.id) {
       throw new Error('Invalid response from Medium API');
@@ -153,7 +156,7 @@ export async function verifyMediumCredentials(config: MediumConfig): Promise<boo
       return false;
     }
 
-    const result = await response.json();
+    const result = await response.json() as { data: { username: string } };
     console.error(`  - Medium credentials verified for user: ${result.data.username}`);
     return true;
   } catch (error) {
@@ -184,7 +187,14 @@ export async function getMediumProfile(config: MediumConfig): Promise<{
       throw new Error(`Failed to fetch profile: ${response.status}`);
     }
 
-    const result = await response.json();
+    const result = await response.json() as {
+      data: {
+        id: string;
+        username: string;
+        name: string;
+        url: string;
+      };
+    };
 
     return {
       id: result.data.id,

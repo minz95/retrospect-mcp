@@ -107,12 +107,17 @@ function parseInsightsFromResponse(text: string): ExtractedInsight[] {
     throw new Error('Response is not a JSON array');
   }
 
-  return parsed.map((item: any) => ({
-    content: String(item.content || ''),
-    category: String(item.category || 'other'),
-    confidence: Number(item.confidence || 0),
-    context: String(item.context || ''),
-  }));
+  return parsed.map((item: any) => {
+    const validCategories = ['debugging', 'performance', 'tooling', 'architecture', 'api', 'integration', 'other'];
+    const category = validCategories.includes(item.category) ? item.category : 'other';
+
+    return {
+      content: String(item.content || ''),
+      category: category as ExtractedInsight['category'],
+      confidence: Number(item.confidence || 0),
+      context: String(item.context || ''),
+    };
+  });
 }
 
 /**

@@ -72,7 +72,7 @@ export async function publishLinkedInPost(
       );
     }
 
-    const result = await response.json();
+    const result = await response.json() as { id: string };
     const postId = result.id;
 
     // LinkedIn post URLs are in the format: https://www.linkedin.com/feed/update/{postId}
@@ -111,7 +111,7 @@ export async function verifyLinkedInCredentials(config: LinkedInConfig): Promise
       return false;
     }
 
-    const profile = await response.json();
+    const profile = await response.json() as { id: string };
     console.error(`  - LinkedIn credentials verified for user: ${profile.id}`);
     return true;
   } catch (error) {
@@ -140,7 +140,7 @@ export async function getLinkedInProfile(config: LinkedInConfig): Promise<{
       throw new Error(`Failed to fetch profile: ${response.status}`);
     }
 
-    const profile = await response.json();
+    const profile = await response.json() as { id: string };
 
     // Fetch localized name
     const nameResponse = await fetch(
@@ -153,7 +153,7 @@ export async function getLinkedInProfile(config: LinkedInConfig): Promise<{
       }
     );
 
-    const nameData = await nameResponse.json();
+    const nameData = await nameResponse.json() as { localizedFirstName?: string; localizedLastName?: string };
 
     return {
       id: profile.id,

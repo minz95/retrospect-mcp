@@ -177,7 +177,7 @@ async function publishToMedium(post: any, config: Config): Promise<string> {
       publishStatus,
       tags,
     },
-    { accessToken: config.sns.medium.accessToken }
+    { accessToken: config.sns.medium.token }
   );
 
   return result.url;
@@ -232,7 +232,6 @@ async function revisePost(
     metadata: {
       hashtags: generated.hashtags,
       ...generated.metadata,
-      revisionPrompt,
     },
   });
 
