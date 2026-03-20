@@ -16,32 +16,42 @@ const ConfigSchema = z.object({
   obsidian: z.object({
     vaultPath: z.string().min(1, 'Obsidian vault path is required'),
   }),
-  notion: z.object({
-    token: z.string().min(1, 'Notion token is required'),
-    parentPageId: z.string().min(1, 'Notion parent page ID is required'),
-  }),
+  notion: z
+    .object({
+      token: z.string(),
+      parentPageId: z.string(),
+    })
+    .optional(),
   claude: z.object({
     apiKey: z.string().min(1, 'Claude API key is required'),
-    model: z.string().default('claude-sonnet-4-5-20250929'),
+    model: z.string().default('claude-sonnet-4-6'),
   }),
-  sns: z.object({
-    thread: z.object({
-      bearerToken: z.string().min(1, 'Twitter bearer token is required'),
-      apiKey: z.string().optional(),
-      apiSecret: z.string().optional(),
-      accessToken: z.string().optional(),
-      accessSecret: z.string().optional(),
-    }),
-    linkedin: z.object({
-      accessToken: z.string().min(1, 'LinkedIn access token is required'),
-      userId: z.string().min(1, 'LinkedIn user ID is required'),
-    }),
-    medium: z.object({
-      token: z.string().min(1, 'Medium token is required'),
-    }),
-  }),
+  sns: z
+    .object({
+      thread: z
+        .object({
+          bearerToken: z.string(),
+          apiKey: z.string().optional(),
+          apiSecret: z.string().optional(),
+          accessToken: z.string().optional(),
+          accessSecret: z.string().optional(),
+        })
+        .optional(),
+      linkedin: z
+        .object({
+          accessToken: z.string(),
+          userId: z.string(),
+        })
+        .optional(),
+      medium: z
+        .object({
+          token: z.string(),
+        })
+        .optional(),
+    })
+    .optional(),
   git: z.object({
-    defaultRepoPath: z.string().min(1, 'Default git repo path is required'),
+    defaultRepoPath: z.string().default(''),
   }),
   database: z.object({
     path: z.string().default('./data/retrospect.db'),
@@ -49,17 +59,13 @@ const ConfigSchema = z.object({
 });
 
 /**
- * Substitute environment variables in config values
- * Replaces ${ENV_VAR} with the value from process.env
+ * Substitute environment variables in config values.
+ * Returns empty string for undefined optional env vars instead of throwing.
  */
 function substituteEnvVars(value: unknown): unknown {
   if (typeof value === 'string') {
     return value.replace(/\$\{([^}]+)\}/g, (_, envVar) => {
-      const envValue = process.env[envVar];
-      if (envValue === undefined) {
-        throw new Error(`Environment variable ${envVar} is not defined`);
-      }
-      return envValue;
+      return process.env[envVar] ?? '';
     });
   }
 
@@ -79,24 +85,43 @@ function substituteEnvVars(value: unknown): unknown {
 }
 
 /**
+ * Strip optional config sections that have no values set.
+ * Prevents Zod from failing on empty optional objects.
+ */
+function stripEmpty(raw: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const [key, val] of Object.entries(raw)) {
+    if (val === null || val === undefined) continue;
+
+    if (typeof val === 'object' && !Array.isArray(val)) {
+      const nested = val as Record<string, unknown>;
+      const allEmpty = Object.values(nested).every((v) => v === '' || v === null || v === undefined);
+      if (allEmpty) continue; // skip entirely so optional fields remain undefined
+      result[key] = stripEmpty(nested);
+    } else {
+      if (val !== '') result[key] = val;
+    }
+  }
+
+  return result;
+}
+
+/**
  * Load and validate configuration
  */
 export function loadConfig(configPath?: string): Config {
-  // Default config path
   const defaultConfigPath = resolve(process.cwd(), 'config/default.json');
   const finalConfigPath = configPath || defaultConfigPath;
 
   try {
-    // Read config file
     const configFile = readFileSync(finalConfigPath, 'utf-8');
     const rawConfig = JSON.parse(configFile);
 
-    // Substitute environment variables
-    const configWithEnv = substituteEnvVars(rawConfig);
+    const configWithEnv = substituteEnvVars(rawConfig) as Record<string, unknown>;
+    const cleaned = stripEmpty(configWithEnv);
 
-    // Validate with Zod
-    const validatedConfig = ConfigSchema.parse(configWithEnv);
-
+    const validatedConfig = ConfigSchema.parse(cleaned);
     return validatedConfig as Config;
   } catch (error) {
     if (error instanceof z.ZodError) {

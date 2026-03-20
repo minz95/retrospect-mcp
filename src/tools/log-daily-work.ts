@@ -128,7 +128,7 @@ export async function logDailyWorkTool(
   // Create Notion page (dual write)
   let notionPageId: string | undefined;
   try {
-    if (project.notionPageId) {
+    if (project.notionPageId && config.notion?.token) {
       const notionClient = new NotionClient({
         token: config.notion.token,
         parentPageId: config.notion.parentPageId,
