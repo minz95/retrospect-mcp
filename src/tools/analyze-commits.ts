@@ -5,7 +5,11 @@
  */
 
 import { analyzeGitCommits } from '../core/git-analyzer.js';
+import { createLogger } from '../utils/logger.js';
+import { ValidationError } from '../utils/errors.js';
 import type { GitCommit } from '../types/index.js';
+
+const log = createLogger('analyze-commits');
 
 export interface AnalyzeCommitsParams {
   repoPath: string;
@@ -33,12 +37,14 @@ export async function analyzeCommitsTool(
 
   // Validate dates
   if (!isValidDate(startDate)) {
-    throw new Error(`Invalid start date: ${startDate}. Expected format: YYYY-MM-DD`);
+    throw new ValidationError(`Invalid start date: ${startDate}. Expected format: YYYY-MM-DD`);
   }
 
   if (!isValidDate(endDate)) {
-    throw new Error(`Invalid end date: ${endDate}. Expected format: YYYY-MM-DD`);
+    throw new ValidationError(`Invalid end date: ${endDate}. Expected format: YYYY-MM-DD`);
   }
+
+  log.info(`Analyzing commits in ${repoPath} from ${startDate} to ${endDate}`);
 
   // Analyze commits
   const commits = await analyzeGitCommits({

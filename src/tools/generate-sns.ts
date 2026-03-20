@@ -7,7 +7,11 @@
 import { generateContent } from '../core/content-generator.js';
 import { ClaudeClient } from '../utils/claude-client.js';
 import { getInsight, createSNSPost } from '../storage/db.js';
+import { createLogger } from '../utils/logger.js';
+import { NotFoundError } from '../utils/errors.js';
 import type { Config } from '../types/index.js';
+
+const log = createLogger('generate-sns');
 
 export interface GenerateSNSParams {
   insightId: string;
@@ -36,10 +40,10 @@ export async function generateSNSTool(
   // Get insight from database
   const insight = getInsight(insightId);
   if (!insight) {
-    throw new Error(`Insight not found: ${insightId}`);
+    throw new NotFoundError('Insight', insightId);
   }
 
-  console.error(`  - Generating ${platform} post for insight: ${insightId}`);
+  log.info(`Generating ${platform} post for insight: ${insightId}`);
 
   // Create Claude client
   const claudeClient = new ClaudeClient({

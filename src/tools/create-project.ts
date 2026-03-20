@@ -14,7 +14,11 @@ import { readFileSync } from 'fs';
 import { createProject, updateProject } from '../storage/db.js';
 import { NotionClient } from '../integrations/notion/client.js';
 import { buildProjectDatabaseProperties } from '../integrations/notion/page-builder.js';
+import { createLogger } from '../utils/logger.js';
+import { ValidationError } from '../utils/errors.js';
 import type { Config } from '../types/index.js';
+
+const log = createLogger('create-project');
 
 export interface CreateProjectParams {
   projectName: string;
@@ -40,7 +44,7 @@ export async function createProjectTool(
 
   // Validate project name
   if (!projectName || projectName.trim().length === 0) {
-    throw new Error('Project name is required');
+    throw new ValidationError('Project name is required');
   }
 
   const sanitizedName = sanitizeName(projectName);
@@ -81,13 +85,12 @@ export async function createProjectTool(
 
     notionPageId = notionResult.databaseId;
     notionUrl = notionResult.url;
-    console.error(`  - Created Notion database: ${notionUrl}`);
+    log.info(`Created Notion database: ${notionUrl}`);
 
     // Update project with Notion database ID
     updateProject(projectId, { notionPageId });
   } catch (error) {
-    console.error('  - Warning: Failed to create Notion database:', error);
-    // Continue without Notion database (don't fail the entire operation)
+    log.warn('Failed to create Notion database (continuing without Notion)', error instanceof Error ? error : undefined);
   }
 
   // TODO: Implement conversation mode in Issue #25
@@ -141,7 +144,7 @@ function createObsidianProject(
   const readmePath = join(projectPath, 'README.md');
   writeFileSync(readmePath, rendered, 'utf-8');
 
-  console.error(`  - Created Obsidian project at: ${projectPath}`);
+  log.info(`Created Obsidian project at: ${projectPath}`);
 
   return projectPath;
 }

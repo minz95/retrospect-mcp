@@ -14,8 +14,12 @@ import { ObsidianFileManager } from '../integrations/obsidian/file-manager.js';
 import { NotionClient } from '../integrations/notion/client.js';
 import { buildDailyLogPage } from '../integrations/notion/page-builder.js';
 import { createDailyLog, getProject, createActionItem, updateDailyLog } from '../storage/db.js';
+import { createLogger } from '../utils/logger.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 import type { Config } from '../types/index.js';
 import type { GitCommit } from '../types/index.js';
+
+const log = createLogger('log-daily-work');
 
 export interface LogDailyWorkParams {
   date?: string; // ISO date (YYYY-MM-DD), defaults to today
@@ -52,7 +56,11 @@ export async function logDailyWorkTool(
   // Get project from database
   const project = getProject(projectId);
   if (!project) {
-    throw new Error(`Project not found: ${projectId}`);
+    throw new NotFoundError('Project', projectId);
+  }
+
+  if (!isValidDate(date)) {
+    throw new ValidationError(`Invalid date format: ${date}. Expected YYYY-MM-DD`);
   }
 
   // Analyze git commits if requested
@@ -65,13 +73,11 @@ export async function logDailyWorkTool(
         endDate: date,
         includeDiff: false,
       });
-      console.error(`  - Found ${commits.length} commits for ${date}`);
+      log.info(`Found ${commits.length} commits for ${date}`);
     } catch (error) {
-      console.error(`  - Warning: Failed to analyze git commits:`, error);
-      // Continue without commits
+      log.warn('Failed to analyze git commits (continuing without commits)', error instanceof Error ? error : undefined);
     }
   } else if (includeCommits && !gitRepoPath) {
-    // Use default git repo path from config
     try {
       commits = await analyzeGitCommits({
         repoPath: config.git.defaultRepoPath,
@@ -79,9 +85,9 @@ export async function logDailyWorkTool(
         endDate: date,
         includeDiff: false,
       });
-      console.error(`  - Found ${commits.length} commits for ${date}`);
+      log.info(`Found ${commits.length} commits for ${date}`);
     } catch (error) {
-      console.error(`  - Warning: Failed to analyze git commits:`, error);
+      log.warn('Failed to analyze git commits from default repo (continuing without commits)', error instanceof Error ? error : undefined);
     }
   }
 
@@ -152,16 +158,15 @@ export async function logDailyWorkTool(
       });
 
       notionPageId = notionResult.pageId;
-      console.error(`  - Notion page created: ${notionResult.url}`);
+      log.info(`Notion page created: ${notionResult.url}`);
 
       // Update database with Notion page ID
       updateDailyLog(logId, { notionPageId });
     } else {
-      console.error('  - Skipping Notion (project has no Notion database)');
+      log.debug('Skipping Notion: project has no Notion database');
     }
   } catch (error) {
-    console.error('  - Warning: Failed to create Notion page:', error);
-    // Continue without Notion page (don't fail the entire operation)
+    log.warn('Failed to create Notion page (continuing without Notion)', error instanceof Error ? error : undefined);
   }
 
   return {
@@ -172,6 +177,16 @@ export async function logDailyWorkTool(
     actionItems,
     message: `Daily log created for ${date}!\n- Log ID: ${logId}\n- Commits: ${commits.length}\n- Action items: ${actionItems.length}\n- Obsidian: ${obsidianPath}${notionPageId ? `\n- Notion: Created (${notionPageId})` : ''}`,
   };
+}
+
+/**
+ * Validate ISO date format (YYYY-MM-DD)
+ */
+function isValidDate(dateString: string): boolean {
+  const regex = /^\d{4}-\d{2}-\d{2}$/;
+  if (!regex.test(dateString)) return false;
+  const d = new Date(dateString);
+  return d instanceof Date && !isNaN(d.getTime());
 }
 
 /**

@@ -19,6 +19,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import { loadConfig } from './utils/config.js';
 import { initializeDatabase } from './storage/db.js';
+import { logger } from './utils/logger.js';
 import { createProjectTool, type CreateProjectParams } from './tools/create-project.js';
 import { logDailyWorkTool, type LogDailyWorkParams } from './tools/log-daily-work.js';
 import { analyzeCommitsTool, type AnalyzeCommitsParams } from './tools/analyze-commits.js';
@@ -42,11 +43,9 @@ async function main() {
   let config: Config;
   try {
     config = loadConfig();
-    console.error('✓ Configuration loaded successfully');
-    console.error(`  - Obsidian vault: ${config.obsidian.vaultPath}`);
-    console.error(`  - Database: ${config.database.path}`);
+    logger.info(`Configuration loaded (vault: ${config.obsidian.vaultPath})`);
   } catch (error) {
-    console.error('✗ Failed to load configuration:', error);
+    logger.error('Failed to load configuration', error instanceof Error ? error : undefined);
     process.exit(1);
   }
 
@@ -54,7 +53,7 @@ async function main() {
   try {
     initializeDatabase(config.database.path);
   } catch (error) {
-    console.error('✗ Failed to initialize database:', error);
+    logger.error('Failed to initialize database', error instanceof Error ? error : undefined);
     process.exit(1);
   }
 
@@ -545,9 +544,7 @@ async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
-  console.error('Retrospect MCP Server started');
-  console.error('Version: 1.0.0');
-  console.error('Listening on stdio...');
+  logger.info('Retrospect MCP Server v1.0.0 started on stdio');
 }
 
 // Handle errors
