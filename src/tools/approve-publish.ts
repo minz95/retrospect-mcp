@@ -123,6 +123,7 @@ async function publishToThread(post: any, config: Config): Promise<string> {
     ? post.content
     : JSON.parse(post.content);
 
+  if (!config.sns?.thread?.bearerToken) throw new Error('Twitter/X not configured');
   const result = await publishThread(
     { tweets },
     { bearerToken: config.sns.thread.bearerToken }
@@ -139,6 +140,7 @@ async function publishToLinkedIn(post: any, config: Config): Promise<string> {
     ? post.content
     : JSON.stringify(post.content);
 
+  if (!config.sns?.linkedin?.accessToken) throw new Error('LinkedIn not configured');
   const result = await publishLinkedInPost(
     { content },
     {
@@ -169,6 +171,7 @@ async function publishToMedium(post: any, config: Config): Promise<string> {
     ? post.metadata.hashtags.map((tag: string) => tag.replace('#', ''))
     : [];
 
+  if (!config.sns?.medium?.token) throw new Error('Medium not configured');
   const result = await publishMediumPost(
     {
       title,

@@ -67,6 +67,7 @@ export async function createProjectTool(
   let notionPageId: string | undefined;
   let notionUrl: string | undefined;
   try {
+    if (!config.notion?.token) throw new Error('Notion not configured');
     const notionClient = new NotionClient({
       token: config.notion.token,
       parentPageId: config.notion.parentPageId,

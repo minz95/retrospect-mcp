@@ -6,7 +6,7 @@ export interface Config {
   obsidian: {
     vaultPath: string;
   };
-  notion: {
+  notion?: {
     token: string;
     parentPageId: string;
   };
@@ -14,19 +14,19 @@ export interface Config {
     apiKey: string;
     model: string;
   };
-  sns: {
-    thread: {
+  sns?: {
+    thread?: {
       bearerToken: string;
       apiKey?: string;
       apiSecret?: string;
       accessToken?: string;
       accessSecret?: string;
     };
-    linkedin: {
+    linkedin?: {
       accessToken: string;
       userId: string;
     };
-    medium: {
+    medium?: {
       token: string;
     };
   };
