@@ -7,7 +7,11 @@
 import { extractInsights } from '../core/insight-extractor.js';
 import { ClaudeClient } from '../utils/claude-client.js';
 import { getDailyLogsByDateRange, createInsight, getInsightsByDate } from '../storage/db.js';
+import { createLogger } from '../utils/logger.js';
+import { ValidationError } from '../utils/errors.js';
 import type { Config } from '../types/index.js';
+
+const log = createLogger('extract-insights');
 
 export interface ExtractInsightsParams {
   startDate: string; // ISO date (YYYY-MM-DD)
@@ -39,18 +43,18 @@ export async function extractInsightsTool(
 
   // Validate dates
   if (!isValidDate(startDate)) {
-    throw new Error(`Invalid start date: ${startDate}. Expected format: YYYY-MM-DD`);
+    throw new ValidationError(`Invalid start date: ${startDate}. Expected format: YYYY-MM-DD`);
   }
 
   if (!isValidDate(endDate)) {
-    throw new Error(`Invalid end date: ${endDate}. Expected format: YYYY-MM-DD`);
+    throw new ValidationError(`Invalid end date: ${endDate}. Expected format: YYYY-MM-DD`);
   }
 
   // Check if insights already exist for this date range (caching)
   if (!forceRefresh) {
     const existingInsights = getInsightsByDateRange(startDate, endDate);
     if (existingInsights.length > 0) {
-      console.error(`  - Found ${existingInsights.length} cached insight(s) for ${startDate} to ${endDate}`);
+      log.info(`Found ${existingInsights.length} cached insight(s) for ${startDate} to ${endDate}`);
       return {
         insights: existingInsights.map(insight => ({
           id: insight.id,
@@ -81,7 +85,7 @@ export async function extractInsightsTool(
     };
   }
 
-  console.error(`  - Analyzing ${logs.length} log(s) from ${startDate} to ${endDate}...`);
+  log.info(`Analyzing ${logs.length} log(s) from ${startDate} to ${endDate}...`);
 
   // Create Claude client
   const claudeClient = new ClaudeClient({
@@ -121,7 +125,7 @@ export async function extractInsightsTool(
       date: endDate,
     });
 
-    console.error(`  - Saved insight: ${insightId} (${insight.category}, confidence: ${insight.confidence})`);
+    log.info(`Saved insight: ${insightId} (${insight.category}, confidence: ${insight.confidence})`);
   }
 
   // Format message

@@ -10,7 +10,11 @@ import { publishLinkedInPost } from '../integrations/sns/linkedin-api.js';
 import { publishMediumPost, extractTitleFromMarkdown } from '../integrations/sns/medium-api.js';
 import { generateContent } from '../core/content-generator.js';
 import { ClaudeClient } from '../utils/claude-client.js';
+import { createLogger } from '../utils/logger.js';
+import { NotFoundError, ValidationError } from '../utils/errors.js';
 import type { Config } from '../types/index.js';
+
+const log = createLogger('approve-publish');
 
 export interface ApproveAndPublishParams {
   postId: string;
@@ -42,10 +46,10 @@ export async function approveAndPublishTool(
   // Get post from database
   const post = getSNSPost(postId);
   if (!post) {
-    throw new Error(`Post not found: ${postId}`);
+    throw new NotFoundError('Post', postId);
   }
 
-  console.error(`  - Processing ${action} for post: ${postId} (${post.platform})`);
+  log.info(`Processing ${action} for post: ${postId} (${post.platform})`);
 
   // Handle different actions
   switch (action) {
@@ -54,7 +58,7 @@ export async function approveAndPublishTool(
 
     case 'revise':
       if (!revisionPrompt || revisionPrompt.trim().length === 0) {
-        throw new Error('revisionPrompt is required for revise action');
+        throw new ValidationError('revisionPrompt is required for revise action');
       }
       return await revisePost(post, revisionPrompt, config);
 
@@ -73,7 +77,7 @@ async function approveAndPublish(
   post: any,
   config: Config
 ): Promise<ApproveAndPublishResult> {
-  console.error(`  - Publishing to ${post.platform}...`);
+  log.info(`Publishing to ${post.platform}...`);
 
   let url: string;
 
@@ -98,7 +102,7 @@ async function approveAndPublish(
     // Update post status in database
     updateSNSPostStatus(post.id, 'published', url);
 
-    console.error(`  - Published successfully: ${url}`);
+    log.info(`Published successfully: ${url}`);
 
     return {
       postId: post.id,
@@ -108,7 +112,7 @@ async function approveAndPublish(
       message: `Post published successfully to ${post.platform}!\n\nURL: ${url}\n\nPost ID: ${post.id}`,
     };
   } catch (error) {
-    console.error(`  - Failed to publish to ${post.platform}:`, error);
+    log.error(`Failed to publish to ${post.platform}`, error instanceof Error ? error : undefined);
     throw new Error(
       `Failed to publish to ${post.platform}: ${error instanceof Error ? error.message : String(error)}`
     );
