@@ -85,26 +85,36 @@ function substituteEnvVars(value: unknown): unknown {
 }
 
 /**
- * Strip optional config sections that have no values set.
- * Prevents Zod from failing on empty optional objects.
+ * Strip genuinely optional config sections (notion, sns) when they have no values.
+ * Required sections (obsidian, claude, git, database) are always preserved.
  */
+const OPTIONAL_SECTIONS = new Set(['notion', 'sns']);
+
 function stripEmpty(raw: Record<string, unknown>): Record<string, unknown> {
   const result: Record<string, unknown> = {};
 
   for (const [key, val] of Object.entries(raw)) {
     if (val === null || val === undefined) continue;
 
-    if (typeof val === 'object' && !Array.isArray(val)) {
-      const nested = val as Record<string, unknown>;
-      const allEmpty = Object.values(nested).every((v) => v === '' || v === null || v === undefined);
-      if (allEmpty) continue; // skip entirely so optional fields remain undefined
-      result[key] = stripEmpty(nested);
-    } else {
-      if (val !== '') result[key] = val;
+    if (OPTIONAL_SECTIONS.has(key) && typeof val === 'object' && !Array.isArray(val)) {
+      // Recursively check if all leaf values are empty
+      if (isDeepEmpty(val as Record<string, unknown>)) continue;
     }
+
+    result[key] = val;
   }
 
   return result;
+}
+
+function isDeepEmpty(obj: Record<string, unknown>): boolean {
+  return Object.values(obj).every((v) => {
+    if (v === null || v === undefined || v === '') return true;
+    if (typeof v === 'object' && !Array.isArray(v)) {
+      return isDeepEmpty(v as Record<string, unknown>);
+    }
+    return false;
+  });
 }
 
 /**
