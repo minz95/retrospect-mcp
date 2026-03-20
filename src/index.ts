@@ -25,6 +25,7 @@ import { analyzeCommitsTool, type AnalyzeCommitsParams } from './tools/analyze-c
 import { extractInsightsTool, type ExtractInsightsParams } from './tools/extract-insights.js';
 import { generateSNSTool, type GenerateSNSParams } from './tools/generate-sns.js';
 import { approveAndPublishTool, type ApproveAndPublishParams } from './tools/approve-publish.js';
+import { extractActionsTool, type ExtractActionsParams } from './tools/extract-actions.js';
 import { listInsightsResources, readInsightsResource } from './resources/insights.js';
 import { listPendingPostsResources, readPendingPostsResource } from './resources/pending-posts.js';
 import { listDailyLogsResources, readDailyLogsResource } from './resources/daily-logs.js';
@@ -231,8 +232,36 @@ async function main() {
             required: ['postId', 'action'],
           },
         },
-        // TODO: Add more tools in subsequent issues
-        // - extract_action_items (Issue #26)
+        {
+          name: 'extract_action_items',
+          description: 'Extract prioritized action items from daily logs using Claude AI',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              logId: {
+                type: 'string',
+                description: 'Specific daily log ID to extract from',
+              },
+              projectId: {
+                type: 'string',
+                description: 'Filter by project ID (used with startDate/endDate)',
+              },
+              startDate: {
+                type: 'string',
+                description: 'Start date for range extraction (YYYY-MM-DD)',
+              },
+              endDate: {
+                type: 'string',
+                description: 'End date for range extraction (YYYY-MM-DD)',
+              },
+              forceRefresh: {
+                type: 'boolean',
+                description: 'Force re-extraction even if items already exist (default false)',
+                default: false,
+              },
+            },
+          },
+        },
       ],
     };
   });
@@ -326,7 +355,20 @@ async function main() {
         };
       }
 
-      // TODO: Implement more tool handlers in subsequent issues
+      if (name === 'extract_action_items') {
+        const params = (args || {}) as unknown as ExtractActionsParams;
+        const result = await extractActionsTool(params, config);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: result.message,
+            },
+          ],
+        };
+      }
+
       throw new Error(`Unknown tool: ${name}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
