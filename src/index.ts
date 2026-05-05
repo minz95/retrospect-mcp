@@ -132,13 +132,13 @@ async function main() {
         },
         {
           name: 'analyze_git_commits',
-          description: 'Analyze git commits for a specific date range',
+          description: 'Analyze git commits for a specific date range. Omit repoPath to fetch all commits pushed to GitHub that day via gh CLI.',
           inputSchema: {
             type: 'object',
             properties: {
               repoPath: {
                 type: 'string',
-                description: 'Path to git repository',
+                description: 'Path to local git repository. Omit to use GitHub API instead.',
               },
               startDate: {
                 type: 'string',
@@ -150,11 +150,11 @@ async function main() {
               },
               includeChanges: {
                 type: 'boolean',
-                description: 'Include diff analysis (default false)',
+                description: 'Include diff analysis, local repos only (default false)',
                 default: false,
               },
             },
-            required: ['repoPath', 'startDate', 'endDate'],
+            required: ['startDate', 'endDate'],
           },
         },
         {

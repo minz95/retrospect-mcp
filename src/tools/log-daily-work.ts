@@ -10,6 +10,7 @@
  */
 
 import { analyzeGitCommits } from '../core/git-analyzer.js';
+import { analyzeGitHubCommits } from '../core/github-analyzer.js';
 import { ObsidianFileManager } from '../integrations/obsidian/file-manager.js';
 import { NotionClient } from '../integrations/notion/client.js';
 import { buildDailyLogPage } from '../integrations/notion/page-builder.js';
@@ -79,15 +80,10 @@ export async function logDailyWorkTool(
     }
   } else if (includeCommits && !gitRepoPath) {
     try {
-      commits = await analyzeGitCommits({
-        repoPath: config.git.defaultRepoPath,
-        startDate: date,
-        endDate: date,
-        includeDiff: false,
-      });
-      log.info(`Found ${commits.length} commits for ${date}`);
+      commits = await analyzeGitHubCommits({ startDate: date, endDate: date });
+      log.info(`Found ${commits.length} GitHub commits for ${date}`);
     } catch (error) {
-      log.warn('Failed to analyze git commits from default repo (continuing without commits)', error instanceof Error ? error : undefined);
+      log.warn('Failed to analyze GitHub commits (continuing without commits)', error instanceof Error ? error : undefined);
     }
   }
 

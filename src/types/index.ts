@@ -68,6 +68,8 @@ export interface GitCommit {
   additions: number;
   deletions: number;
   diff?: string;
+  repoName?: string;
+  repoFullName?: string;
 }
 
 export interface Insight {
